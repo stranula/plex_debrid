@@ -38,7 +38,7 @@ def logerror(response):
         ui_print("[realdebrid] error: (403 unauthorized): You may have attempted to add an infringing torrent or your realdebrid account is locked or you dont have premium.")
 
 # Set the CSV file path from environment variable, default to 'catalog.csv'
-CSV_FILE_PATH = '/zurg/RD/catalog.csv'
+CSV_FILE_PATH = './catalog.csv'
 
 # Ensure the directory exists
 def ensure_directory_exists(file_path):
