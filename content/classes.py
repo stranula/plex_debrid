@@ -1162,6 +1162,17 @@ class media:
         i = 0
         self.Releases = []
         if self.type in ["movie", "show"] and ((not hasattr(self, "title") or self.title == "" or self.title == None) or (not hasattr(self, "year") or self.year == None or self.year == "")):
+            print(f"Error triggered with self details: {self.__dict__}")
+            ui_print("error: media item has no title or release year. This unknown movie/show might not be released yet.")
+        return
+    scraper
+   
+    def download(self, retries=0, library=[], parentReleases=[]):
+        global imdb_scraped
+        refresh_ = False
+        i = 0
+        self.Releases = []
+        if self.type in ["movie", "show"] and ((not hasattr(self, "title") or self.title == "" or self.title == None) or (not hasattr(self, "year") or self.year == None or self.year == "")):
             ui_print(
                 "error: media item has no title or release year. This unknown movie/show might not be released yet.")
             return
