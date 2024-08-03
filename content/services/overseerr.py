@@ -1,9 +1,6 @@
-import requests
-import json
-import datetime
-import copy
-import pandas as pd
+#import modules
 from base import *
+#import parent modules
 from content import classes
 from content.services import plex
 from content.services import trakt
@@ -126,7 +123,8 @@ def setup(self):
                     users = ['all']
                     return True
                 elif choice == '2':
-                    print("Choose which users approved requests should be downloaded by plex_debrid. Type 'all' to add all currently listed users.")
+                    print(
+                        "Choose which users approved requests should be downloaded by plex_debrid. Type 'all' to add all currently listed users.")
                     print()
                     i = 0
                     indices = []
@@ -251,9 +249,6 @@ class requests(classes.watchlist):
                 for element in response.results:
                     if not element in self.data and (element.requestedBy.displayName in users or users == ['all']) and ([str(element.media.status)] in allowed_movie_status if element.type == 'movie' else [str(element.media.status)] in allowed_show_status):
                         last_requests.append(element)
-                # Write response to CSV
-                df = pd.json_normalize([vars(element) for element in response.results])
-                df.to_csv('overseerr_requests.csv', index=False)
             except Exception as e:
                 ui_print('[overseerr] error: ' + str(e), ui_settings.debug)
                 ui_print('[overseerr] error: overseerr couldnt be reached. turn on debug printing for more info.')
@@ -331,9 +326,6 @@ class requests(classes.watchlist):
                 for element in last_requests[:]:
                     if not element.id in (x.id for x in response.results):
                         last_requests.remove(element)
-                # Write response to CSV
-                df = pd.json_normalize([vars(element) for element in response.results])
-                df.to_csv('overseerr_requests.csv', index=False)
                 if refresh:
                     return True
             except:
