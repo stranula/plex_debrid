@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+ plexdebrid:
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    container_name: plex_debrid
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=Africa/Johannesburg
+    image: stranulax/plex_debrid:latest
+    restart: unless-stopped
+    volumes:
+      - ./settings.json:/settings.json:rw #optional, use this if you already have a settings.json from running PD without docker
