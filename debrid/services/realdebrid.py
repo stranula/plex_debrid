@@ -9,24 +9,25 @@ import pprint
 # (required) Name of the Debrid service
 name = "Real Debrid"
 short = "RD"
-# (required) Authentification of the Debrid service, can be oauth aswell. Create a setting for the required variables in the ui.settings_list. For an oauth example check the trakt authentification.
+# (required) Authentification of the Debrid service, can be oauth as well. Create a setting for the required variables in the ui.settings_list. For an oauth example check the trakt authentication.
 api_key = ""
 # Define Variables
 session = requests.Session()
 errors = [
-    [202," action already done"],
-    [400," bad Request (see error message)"],
-    [403," permission denied (infringing torrent or account locked or not premium)"],
-    [503," service unavailable (see error message)"],
-    [404," wrong parameter (invalid file id(s)) / unknown ressource (invalid id)"],
-    ]
+    [202, "action already done"],
+    [400, "bad Request (see error message)"],
+    [403, "permission denied (infringing torrent or account locked or not premium)"],
+    [503, "service unavailable (see error message)"],
+    [404, "wrong parameter (invalid file id(s)) / unknown resource (invalid id)"],
+]
+
 def setup(cls, new=False):
     from debrid.services import setup
-    setup(cls,new)
+    setup(cls, new)
 
 # Error Log
 def logerror(response):
-    if not response.status_code in [200,201,204]:
+    if not response.status_code in [200, 201, 204]:
         desc = ""
         for error in errors:
             if response.status_code == error[0]:
@@ -35,7 +36,7 @@ def logerror(response):
     if response.status_code == 401:
         ui_print("[realdebrid] error: (401 unauthorized): realdebrid api key does not seem to work. check your realdebrid settings.")
     if response.status_code == 403:
-        ui_print("[realdebrid] error: (403 unauthorized): You may have attempted to add an infringing torrent or your realdebrid account is locked or you dont have premium.")
+        ui_print("[realdebrid] error: (403 unauthorized): You may have attempted to add an infringing torrent or your realdebrid account is locked or you don't have premium.")
 
 # Set the CSV file path from environment variable, default to 'catalog.csv'
 CSV_FILE_PATH = '/data/catalog.csv'
@@ -50,7 +51,6 @@ def ensure_directory_exists(file_path):
     else:
         # print(f"Directory already exists: {directory}")
         pass
-
 
 # CSV Writing Function
 def write_to_csv(data, torrent_file_name, actual_title):
@@ -92,7 +92,9 @@ def extract_element_data(element):
 # Get Function
 def get(url):
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36','authorization': 'Bearer ' + api_key}
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36',
+        'authorization': 'Bearer ' + api_key
+    }
     response = None
     try:
         response = session.get(url, headers=headers)
@@ -106,14 +108,16 @@ def get(url):
 # Post Function
 def post(url, data):
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36','authorization': 'Bearer ' + api_key}
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36',
+        'authorization': 'Bearer ' + api_key
+    }
     response = None
     try:
         response = session.post(url, headers=headers, data=data)
         logerror(response)
         response = json.loads(response.content, object_hook=lambda d: SimpleNamespace(**d))
     except Exception as e:
-        if hasattr(response,"status_code"):
+        if hasattr(response, "status_code"):
             if response.status_code >= 300:
                 ui_print("[realdebrid] error: (json exception): " + str(e), debug=ui_settings.debug)
         else:
@@ -123,7 +127,8 @@ def post(url, data):
 
 # Delete Function
 def delete(url):
-    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36','authorization': 'Bearer ' + api_key}
+    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36',
+               'authorization': 'Bearer ' + api_key}
     try:
         requests.delete(url, headers=headers)
         # time.sleep(1)
@@ -181,6 +186,7 @@ def download(element, stream=True, query='', force=False):
     cached = element.Releases
     print("Cached: ")
     print(cached)
+    print(f"Number of cached releases found: {len(cached)}")  # Added print statement
     if query == '':
         query = element.deviation()
     wanted = [query]
@@ -220,7 +226,7 @@ def download(element, stream=True, query='', force=False):
                                             print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] Rate limit exceeded')
                                     continue
                             try:
-                                response = post('https://api.real-debrid.com/rest/1.0/torrents/addMagnet',{'magnet': str(release.download[0])})
+                                response = post('https://api.real-debrid.com/rest/1.0/torrents/addMagnet', {'magnet': str(release.download[0])})
                                 if hasattr(response, 'id'):
                                     torrent_id = str(response.id)
                                 else:
@@ -239,7 +245,7 @@ def download(element, stream=True, query='', force=False):
                                         actual_title = response.filename
                                         release.download = response.links
                                     else:
-                                        if response.status in ["queued","magnet_conversion","downloading","uploading"]:
+                                        if response.status in ["queued", "magnet_conversion", "downloading", "uploading"]:
                                             if hasattr(element, "version"):
                                                 debrid_uncached = True
                                                 for i, rule in enumerate(element.version.rules):
@@ -258,7 +264,7 @@ def download(element, stream=True, query='', force=False):
                                     if len(release.download) > 0:
                                         for link in release.download:
                                             try:
-                                                response = post('https://api.real-debrid.com/rest/1.0/unrestrict/link',{'link': link})
+                                                response = post('https://api.real-debrid.com/rest/1.0/unrestrict/link', {'link': link})
                                             except Exception as e:
                                                 print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] Error: {e}')
                                                 break
@@ -280,9 +286,9 @@ def download(element, stream=True, query='', force=False):
                 return False
             else:
                 try:
-                    response = post('https://api.real-debrid.com/rest/1.0/torrents/addMagnet',{'magnet': release.download[0]})
+                    response = post('https://api.real-debrid.com/rest/1.0/torrents/addMagnet', {'magnet': release.download[0]})
                     time.sleep(0.1)
-                    post('https://api.real-debrid.com/rest/1.0/torrents/selectFiles/' + str(response.id),{'files': 'all'})
+                    post('https://api.real-debrid.com/rest/1.0/torrents/selectFiles/' + str(response.id), {'files': 'all'})
                     ui_print('[realdebrid] adding uncached release: ' + release.title)
                     # Write to CSV
                     write_to_csv(data, release.title, actual_title)
@@ -310,7 +316,7 @@ def check(element, force=False):
         if len(release.hash) == 40:
             hashes += [release.hash]
         else:
-            ui_print("[realdebrid] error (missing torrent hash): ignoring release '" + release.title + "' ",ui_settings.debug)
+            ui_print("[realdebrid] error (missing torrent hash): ignoring release '" + release.title + "' ", ui_settings.debug)
             element.Releases.remove(release)
     if len(hashes) > 0:
         response = get('https://api.real-debrid.com/rest/1.0/torrents/instantAvailability/' + '/'.join(hashes))
@@ -323,10 +329,10 @@ def check(element, force=False):
                 if hasattr(response_attr, 'rd'):
                     rd_attr = response_attr.rd
                     if len(rd_attr) > 0:
-                        for cashed_version in rd_attr:
+                        for cached_version in rd_attr:
                             version_files = []
-                            for file_ in cashed_version.__dict__:
-                                file_attr = getattr(cashed_version, file_)
+                            for file_ in cached_version.__dict__:
+                                file_attr = getattr(cached_version, file_)
                                 debrid_file = file(file_, file_attr.filename, file_attr.filesize, wanted_patterns, unwanted_patterns)
                                 version_files.append(debrid_file)
                             release.files += [version(version_files), ]
@@ -339,4 +345,4 @@ def check(element, force=False):
                         release.size = release.files[0].size
                         release.cached += ['RD']
                         continue
-        ui_print("done",ui_settings.debug)
+        ui_print("done", ui_settings.debug)
