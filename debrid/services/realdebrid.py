@@ -5,6 +5,10 @@ import releases
 import os
 import csv
 import pprint
+import asyncio
+import aiohttp
+import regex
+from requests import get
 
 # (required) Name of the Debrid service
 name = "Real Debrid"
@@ -293,7 +297,20 @@ def download(element, stream=True, query='', force=False):
     return False
     write_processed_items(processed_items_file, new_processed_items)
 
-# (required) Check Function
+async def fetch(session, url, retries=2):
+    for _ in range(retries):
+        try:
+            async with session.get(url, timeout=30) as response:
+                return await response.json()
+        except asyncio.TimeoutError:
+            continue
+    return None
+
+async def fetch_all(urls):
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch(session, url) for url in urls]
+        return await asyncio.gather(*tasks)
+
 def check(element, force=False):
     if force:
         wanted = ['.*']
@@ -306,28 +323,36 @@ def check(element, force=False):
     hashes = []
     for release in element.Releases[:]:
         if len(release.hash) == 40:
-            hashes += [release.hash]
+            hashes.append(release.hash)
         else:
-            ui_print("[realdebrid] error (missing torrent hash): ignoring release '" + release.title + "' ",ui_settings.debug)
+            ui_print("[realdebrid] error (missing torrent hash): ignoring release '" + release.title + "' ", ui_settings.debug)
             element.Releases.remove(release)
+
     if len(hashes) > 0:
-        response = get('https://api.real-debrid.com/rest/1.0/torrents/instantAvailability/' + '/'.join(hashes))
+        loop = asyncio.get_event_loop()
+        urls = ['https://api.real-debrid.com/rest/1.0/torrents/instantAvailability/' + '/'.join(hashes[i:i+20]) for i in range(0, len(hashes), 20)]
+        responses = loop.run_until_complete(fetch_all(urls))
+
         ui_print("[realdebrid] checking and sorting all release files ...", ui_settings.debug)
+        
+        cached_count = 0  # Initialize cached count
+        
         for release in element.Releases:
             release.files = []
             release_hash = release.hash.lower()
-            if hasattr(response, release_hash):
-                response_attr = getattr(response, release_hash)
-                if hasattr(response_attr, 'rd'):
-                    rd_attr = response_attr.rd
+            response = next((resp for resp in responses if resp and release_hash in resp), None)
+            if response and release_hash in response:
+                response_attr = response[release_hash]
+                if 'rd' in response_attr:
+                    rd_attr = response_attr['rd']
                     if len(rd_attr) > 0:
-                        for cashed_version in rd_attr:
+                        for cached_version in rd_attr:
                             version_files = []
-                            for file_ in cashed_version.__dict__:
-                                file_attr = getattr(cashed_version, file_)
-                                debrid_file = file(file_, file_attr.filename, file_attr.filesize, wanted_patterns, unwanted_patterns)
+                            for file_ in cached_version:
+                                file_attr = cached_version[file_]
+                                debrid_file = file(file_, file_attr['filename'], file_attr['filesize'], wanted_patterns, unwanted_patterns)
                                 version_files.append(debrid_file)
-                            release.files += [version(version_files), ]
+                            release.files.append(version(version_files))
                         # select cached version that has the most needed, most wanted, least unwanted files and most files overall
                         release.files.sort(key=lambda x: len(x.files), reverse=True)
                         release.files.sort(key=lambda x: x.wanted, reverse=True)
@@ -335,6 +360,9 @@ def check(element, force=False):
                         release.wanted = release.files[0].wanted
                         release.unwanted = release.files[0].unwanted
                         release.size = release.files[0].size
-                        release.cached += ['RD']
+                        release.cached.append('RD')
+                        cached_count += 1  # Increment cached count
                         continue
-        ui_print("done",ui_settings.debug)
+        
+        ui_print(f"done. {cached_count} out of {len(element.Releases)} releases are cached.", ui_settings.debug)
+
