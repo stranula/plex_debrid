@@ -184,9 +184,7 @@ def download(element, stream=True, query='', force=False):
     # Extract data for CSV
     data = extract_element_data(element)
     cached = element.Releases
-    print("Cached: ")
-    print(cached)
-    print(f"Number of cached releases found: {len(cached)}")  # Added print statement
+    print(element.title)
     if query == '':
         query = element.deviation()
     wanted = [query]
