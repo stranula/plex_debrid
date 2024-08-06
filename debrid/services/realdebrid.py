@@ -81,15 +81,14 @@ def initialize_database():
         )
     ''')
     c.execute('''
-        CREATE TABLE IF NOT EXISTS processed_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            torrent_dir_name TEXT
-        )
-    ''')
-    c.execute('''
         CREATE TABLE IF NOT EXISTS unaccounted (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            dir_name TEXT
+            src_dir TEXT,
+            file_name TEXT,
+            matched_imdb_id TEXT,
+            year TEXT,
+            symlink_top_folder TEXT,
+            symlink_filename TEXT
         )
     ''')
     conn.commit()
