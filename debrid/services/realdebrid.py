@@ -96,17 +96,19 @@ def initialize_database():
     conn.close()
 
 def insert_catalog_data(data, torrent_file_name, actual_title):
-    with db_lock:
-        if not os.path.exists(DATABASE_PATH):
-            initialize_database()
+    if not os.path.exists(DATABASE_PATH):
+        initialize_database()
+    try:
         conn = sqlite3.connect(DATABASE_PATH)
         c = conn.cursor()
         c.execute('''
             INSERT INTO catalog (eid, title, type, year, parent_eid, parent_title, parent_type, parent_year, grandparent_eid, grandparent_title, grandparent_type, grandparent_year, torrent_file_name, actual_title)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', data + [torrent_file_name, actual_title])
+        ''', (*data, torrent_file_name, actual_title))
         conn.commit()
         conn.close()
+    except sqlite3.Error as e:
+        print(f"Error inserting into catalog table: {e}")
 
 # Pretty-print the element object
 def print_element_details(element):
