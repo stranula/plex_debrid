@@ -5,6 +5,7 @@ import releases
 import os
 import csv
 import pprint
+import sqlite3
 
 # (required) Name of the Debrid service
 name = "Real Debrid"
@@ -52,16 +53,60 @@ def ensure_directory_exists(file_path):
         # print(f"Directory already exists: {directory}")
         pass
 
-# CSV Writing Function
-def write_to_csv(data, torrent_file_name, actual_title):
-    ensure_directory_exists(CSV_FILE_PATH)
-    file_exists = os.path.isfile(CSV_FILE_PATH)
-    with open(CSV_FILE_PATH, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        if not file_exists:
-            writer.writerow(['EID', 'Title', 'Type', 'Year', 'ParentEID', 'ParentTitle', 'ParentType', 'ParentYear', 'GrandParentEID', 'GrandParentTitle', 'GrandParentType', 'GrandParentYear', 'Torrent File Name', 'Actual Title'])  # header
-        row = data + [torrent_file_name, actual_title]
-        writer.writerow(row)
+DATABASE_PATH = '/data/media_database.db'
+db_lock = threading.Lock()
+
+def initialize_database():
+    conn = sqlite3.connect(DATABASE_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS catalog (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            eid TEXT,
+            title TEXT,
+            type TEXT,
+            year TEXT,
+            parent_eid TEXT,
+            parent_title TEXT,
+            parent_type TEXT,
+            parent_year TEXT,
+            grandparent_eid TEXT,
+            grandparent_title TEXT,
+            grandparent_type TEXT,
+            grandparent_year TEXT,
+            torrent_file_name TEXT,
+            actual_title TEXT
+            processed_dir_name TEXT,
+            final_symlink_path TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS processed_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            torrent_dir_name TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS unaccounted (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dir_name TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def insert_catalog_data(data, torrent_file_name, actual_title):
+    with db_lock:
+        if not os.path.exists(DATABASE_PATH):
+            initialize_database()
+        conn = sqlite3.connect(DATABASE_PATH)
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO catalog (eid, title, type, year, parent_eid, parent_title, parent_type, parent_year, grandparent_eid, grandparent_title, grandparent_type, grandparent_year, torrent_file_name, actual_title)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', data + [torrent_file_name, actual_title])
+        conn.commit()
+        conn.close()
 
 # Pretty-print the element object
 def print_element_details(element):
@@ -267,9 +312,9 @@ def download(element, stream=True, query='', force=False):
                                                 break
                                         release.files = version.files
                                         ui_print('[realdebrid] adding cached release: ' + release.title)
-                                        # Write to CSV
-                                        write_to_csv(data, release.title, actual_title)
-                                        print("Writing to CSV" + CSV_FILE_PATH)
+                                        # Insert Catalog Data
+                                        insert_catalog_data(data, release.title, actual_title)
+                                        print("Writing to DB")
                                         if not actual_title == "":
                                             release.title = actual_title
                                         return True
