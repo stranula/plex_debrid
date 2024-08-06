@@ -6,6 +6,7 @@ import os
 import csv
 import pprint
 import sqlite3
+import threading
 
 # (required) Name of the Debrid service
 name = "Real Debrid"
