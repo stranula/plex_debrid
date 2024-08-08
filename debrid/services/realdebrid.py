@@ -334,16 +334,14 @@ def download(element, stream=True, query='', force=False):
                     time.sleep(0.1)
                     post('https://api.real-debrid.com/rest/1.0/torrents/selectFiles/' + str(response.id), {'files': 'all'})
                     ui_print('[realdebrid] adding uncached release: ' + release.title)
-                    # Write to CSV
-                    write_to_csv(data, release.title, actual_title)
-                    print("Writing to CSV" + CSV_FILE_PATH)
+                    insert_catalog_data(data, release.title, actual_title)
+                    print("Writing to DB")
                     return True
                 except:
                     continue
         else:
             ui_print('[realdebrid] error: rejecting release: "' + release.title + '" because it doesn\'t match the allowed deviation', ui_settings.debug)
     return False
-    write_processed_items(processed_items_file, new_processed_items)
 
 # (required) Check Function
 def check(element, force=False):
