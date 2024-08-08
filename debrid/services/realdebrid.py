@@ -101,6 +101,8 @@ def insert_catalog_data(data, torrent_file_name, actual_title):
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         c = conn.cursor()
+        # Ensure data types are correct before insertion
+        data = [str(item) for item in data]
         c.execute('''
             INSERT INTO catalog (eid, title, type, year, parent_eid, parent_title, parent_type, parent_year, grandparent_eid, grandparent_title, grandparent_type, grandparent_year, torrent_file_name, actual_title)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -109,6 +111,7 @@ def insert_catalog_data(data, torrent_file_name, actual_title):
         conn.close()
     except sqlite3.Error as e:
         print(f"Error inserting into catalog table: {e}")
+
 
 # Pretty-print the element object
 def print_element_details(element):
@@ -121,20 +124,22 @@ def print_element_details(element):
 
 # Extract necessary fields from element
 def extract_element_data(element):
-    eid = element.EID if hasattr(element, 'EID') else ''
-    title = element.title if hasattr(element, 'title') else ''
-    type_ = element.type if hasattr(element, 'type') else ''
-    year = element.year if hasattr(element, 'year') else ''
-    parentEID = element.parentEID if hasattr(element, 'parentEID') and element.parentEID else ''
-    parentTitle = element.parentTitle if hasattr(element, 'parentTitle') else ''
-    parentType = element.parentType if hasattr(element, 'parentType') else ''
-    parentYear = element.parentYear if hasattr(element, 'parentYear') else ''
-    grandparentEID = element.grandparentEID if hasattr(element, 'grandparentEID') and element.grandparentEID else ''
-    grandparentTitle = element.grandparentTitle if hasattr(element, 'grandparentTitle') else ''
-    grandparentType = element.grandparentType if hasattr(element, 'grandparentType') else ''
-    grandparentYear = element.grandparentYear if hasattr(element, 'grandparentYear') else ''
-    
-    return [eid, title, type_, year, parentEID, parentTitle, parentType, parentYear, grandparentEID, grandparentTitle, grandparentType, grandparentYear]
+    eid = str(element.EID) if hasattr(element, 'EID') else ''
+    title = str(element.title) if hasattr(element, 'title') else ''
+    type_ = str(element.type) if hasattr(element, 'type') else ''
+    year = str(element.year) if hasattr(element, 'year') else ''
+    parentEID = str(element.parentEID) if hasattr(element, 'parentEID') and element.parentEID else ''
+    parentTitle = str(element.parentTitle) if hasattr(element, 'parentTitle') else ''
+    parentType = str(element.parentType) if hasattr(element, 'parentType') else ''
+    parentYear = str(element.parentYear) if hasattr(element, 'parentYear') else ''
+    grandparentEID = str(element.grandparentEID) if hasattr(element,
+                                                            'grandparentEID') and element.grandparentEID else ''
+    grandparentTitle = str(element.grandparentTitle) if hasattr(element, 'grandparentTitle') else ''
+    grandparentType = str(element.grandparentType) if hasattr(element, 'grandparentType') else ''
+    grandparentYear = str(element.grandparentYear) if hasattr(element, 'grandparentYear') else ''
+
+    return [eid, title, type_, year, parentEID, parentTitle, parentType, parentYear, grandparentEID, grandparentTitle,
+            grandparentType, grandparentYear]
 
 # Get Function
 def get(url):
